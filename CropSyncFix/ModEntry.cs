@@ -75,7 +75,7 @@ namespace CropSyncFix
 
             //Update Objects
             var objects = __instance.objects;
-            for (int i = objects.Count() - 1; i >= 0; i++)
+            for (int i = objects.Count() - 1; i >= 0; i--)
             {
                 KeyValuePair<Vector2, StardewValley.Object> pair = objects.Pairs.ElementAt(i);
                 pair.Value.DayUpdate(__instance);
