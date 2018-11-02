@@ -28,13 +28,19 @@ namespace CropSyncFix
         {
             //Harmony patcher
             var harmony = HarmonyInstance.Create("com.github.kirbylink.cropsyncfix");
-            var original = typeof(GameLocation).GetMethod("DayUpdate");
-            var prefix = helper.Reflection.GetMethod(typeof(FixCropSync), "Prefix").MethodInfo;
-            harmony.Patch(original, new HarmonyMethod(prefix), null);
+
+            var locOriginal = typeof(GameLocation).GetMethod("DayUpdate");
+            var locPrefix = helper.Reflection.GetMethod(typeof(LocationDayUpdateMethod), "Prefix").MethodInfo;
+
+            var hdOriginal = typeof(HoeDirt).GetMethod("dayUpdate");
+            var hdPrefix = helper.Reflection.GetMethod(typeof(HoeDirtDayUpdateMethod), "Prefix").MethodInfo;
+
+            harmony.Patch(locOriginal, new HarmonyMethod(locPrefix), null);
+            harmony.Patch(hdOriginal, new HarmonyMethod(hdPrefix), null);
         }
     }
 
-    public static class FixCropSync
+    public static class LocationDayUpdateMethod
     {
 
         static bool Prefix(GameLocation __instance, int dayOfMonth)
@@ -67,7 +73,7 @@ namespace CropSyncFix
 
             //Update Objects
             var objects = __instance.objects;
-            foreach (KeyValuePair<Vector2, StardewValley.Object> pair in objects.Pairs) 
+            foreach (KeyValuePair<Vector2, StardewValley.Object> pair in objects.Pairs)
             {
                 pair.Value.DayUpdate(__instance);
 
@@ -87,10 +93,11 @@ namespace CropSyncFix
                 }
             }
 
-            if (!(__instance is FarmHouse)) {
+            if (!(__instance is FarmHouse))
+            {
                 __instance.debris.Filter(d => d.item != null);
             }
-            
+
             if (__instance.IsOutdoors)
             {
                 __instance.spawnObjects();
@@ -227,4 +234,31 @@ namespace CropSyncFix
             return false;
         }
     }
+
+    public static class HoeDirtDayUpdateMethod
+    {
+
+        static bool Prefix(HoeDirt __instance, GameLocation environment, Vector2 tileLocation)
+        {
+
+            Crop crop = __instance.crop;
+            var state = __instance.state.Value;
+            var fertilizer = __instance.fertilizer.Value;
+
+            if (crop != null)
+            {
+                crop.newDay(state, fertilizer, (int)tileLocation.X, (int)tileLocation.Y, environment);
+
+                if (environment.IsOutdoors && Game1.currentSeason.Equals("winter") && !crop.isWildSeedCrop())
+                    __instance.destroyCrop(tileLocation, false, environment);
+            }
+
+            if ((fertilizer == 370 && Game1.random.NextDouble() < 0.33) || (fertilizer == 371 && Game1.random.NextDouble() < 0.66))
+                return false;
+
+            __instance.state.Value = 0;
+            return false;
+        }
+    }
+
 }
