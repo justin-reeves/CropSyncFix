@@ -52,16 +52,23 @@ namespace CropSyncFix
 
             //Update Terrain Features
             var tFeatures = __instance.terrainFeatures;
+            List<Vector2> toRemove = new List<Vector2>();
+            
             foreach (KeyValuePair<Vector2, TerrainFeature> pair in tFeatures.Pairs)
             {
                 if (!__instance.isTileOnMap(pair.Key) || (!__instance.IsFarm && (pair.Value is HoeDirt && ((pair.Value as HoeDirt).crop == null || (pair.Value as HoeDirt).crop.forageCrop.Value))))
                 {
-                    tFeatures.Remove(pair.Key);
+                    toRemove.Add(pair.Key);
                 }
                 else
                 {
                     pair.Value.dayUpdate(__instance, pair.Key);
                 }
+            }
+
+            foreach (Vector2 vector in toRemove)
+            {
+                tFeatures.Remove(vector);
             }
 
             //Update Large Terrain Features
@@ -73,6 +80,7 @@ namespace CropSyncFix
 
             //Update Objects
             var objects = __instance.objects;
+            toRemove.Clear();
             foreach (KeyValuePair<Vector2, StardewValley.Object> pair in objects.Pairs)
             {
                 pair.Value.DayUpdate(__instance);
@@ -83,7 +91,7 @@ namespace CropSyncFix
                     {
                         if (pair.Value.IsSpawnedObject)
                         {
-                            objects.Remove(pair.Key);
+                            toRemove.Add(pair.Key);
                         }
 
                         __instance.numberOfSpawnedObjectsOnMap = 0;
@@ -91,6 +99,11 @@ namespace CropSyncFix
                         __instance.spawnObjects();
                     }
                 }
+            }
+
+            foreach (Vector2 vector in toRemove)
+            {
+                objects.Remove(vector);
             }
 
             if (!(__instance is FarmHouse))
@@ -250,7 +263,9 @@ namespace CropSyncFix
                 crop.newDay(state, fertilizer, (int)tileLocation.X, (int)tileLocation.Y, environment);
 
                 if (environment.IsOutdoors && Game1.currentSeason.Equals("winter") && !crop.isWildSeedCrop())
+                {
                     __instance.destroyCrop(tileLocation, false, environment);
+                }
             }
 
             if ((fertilizer == 370 && Game1.random.NextDouble() < 0.33) || (fertilizer == 371 && Game1.random.NextDouble() < 0.66))
