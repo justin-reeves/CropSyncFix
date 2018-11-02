@@ -52,25 +52,20 @@ namespace CropSyncFix
 
             //Update Terrain Features
             var tFeatures = __instance.terrainFeatures;
-            List<Vector2> toRemove = new List<Vector2>();
             
-            foreach (KeyValuePair<Vector2, TerrainFeature> pair in tFeatures.Pairs)
+            for (int i = tFeatures.Count() - 1; i >= 0; i--)
             {
+                KeyValuePair<Vector2, TerrainFeature> pair = tFeatures.Pairs.ElementAt(i);
                 if (!__instance.isTileOnMap(pair.Key) || (!__instance.IsFarm && (pair.Value is HoeDirt && ((pair.Value as HoeDirt).crop == null || (pair.Value as HoeDirt).crop.forageCrop.Value))))
                 {
-                    toRemove.Add(pair.Key);
+                    tFeatures.Remove(pair.Key);
                 }
                 else
                 {
                     pair.Value.dayUpdate(__instance, pair.Key);
                 }
             }
-
-            foreach (Vector2 vector in toRemove)
-            {
-                tFeatures.Remove(vector);
-            }
-
+            
             //Update Large Terrain Features
             if (__instance.largeTerrainFeatures.Count > 0)
             {
@@ -80,9 +75,9 @@ namespace CropSyncFix
 
             //Update Objects
             var objects = __instance.objects;
-            toRemove.Clear();
-            foreach (KeyValuePair<Vector2, StardewValley.Object> pair in objects.Pairs)
+            for (int i = objects.Count() - 1; i >= 0; i++)
             {
+                KeyValuePair<Vector2, StardewValley.Object> pair = objects.Pairs.ElementAt(i);
                 pair.Value.DayUpdate(__instance);
 
                 if (__instance.IsOutdoors)
@@ -91,7 +86,7 @@ namespace CropSyncFix
                     {
                         if (pair.Value.IsSpawnedObject)
                         {
-                            toRemove.Add(pair.Key);
+                            objects.Remove(pair.Key);
                         }
 
                         __instance.numberOfSpawnedObjectsOnMap = 0;
@@ -99,11 +94,6 @@ namespace CropSyncFix
                         __instance.spawnObjects();
                     }
                 }
-            }
-
-            foreach (Vector2 vector in toRemove)
-            {
-                objects.Remove(vector);
             }
 
             if (!(__instance is FarmHouse))
