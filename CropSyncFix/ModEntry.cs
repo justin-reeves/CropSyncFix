@@ -1,5 +1,6 @@
 ﻿using Harmony;
 using StardewModdingAPI;
+using StardewModdingAPI.Events;
 using StardewValley;
 using System.Collections.Generic;
 using Microsoft.Xna.Framework;
@@ -37,6 +38,29 @@ namespace CropSyncFix
 
             harmony.Patch(locOriginal, new HarmonyMethod(locPrefix), null);
             harmony.Patch(hdOriginal, new HarmonyMethod(hdPrefix), null);
+
+            helper.Events.World.TerrainFeatureListChanged += this.WorldEvents_TerrainFeatureListChanged;
+        }
+
+        private void WorldEvents_TerrainFeatureListChanged(object sender, WorldTerrainFeatureListChangedEventArgs e)
+        {
+            if (e.Location is Farm)
+            {
+                foreach (KeyValuePair<Vector2, TerrainFeature> pair in e.Added)
+                {
+                    if (pair.Value is HoeDirt)
+                    {
+                        this.Monitor.Log($"Added: [{pair.Key.X}, {pair.Key.Y}]");
+                    }
+                }
+                foreach (KeyValuePair<Vector2, TerrainFeature> pair in e.Removed)
+                {
+                    if (pair.Value is HoeDirt)
+                    {
+                        this.Monitor.Log($"Removed: [{pair.Key.X}, {pair.Key.Y}]");
+                    }
+                }
+            }
         }
     }
 
