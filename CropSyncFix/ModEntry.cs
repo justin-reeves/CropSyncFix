@@ -14,12 +14,14 @@ using StardewValley.Locations;
 using xTile.ObjectModel;
 using xTile.Tiles;
 using StardewValley.Monsters;
+using System.Reflection;
 
 namespace CropSyncFix
 {
     /// <summary>The mod entry point.</summary>
     public class ModEntry : Mod
     {
+        public static ModEntry me;
         /*********
         ** Public methods
         *********/
@@ -27,17 +29,21 @@ namespace CropSyncFix
         /// <param name="helper">Provides simplified APIs for writing mods.</param>
         public override void Entry(IModHelper helper)
         {
+            me = this;
             //Harmony patcher
             var harmony = HarmonyInstance.Create("com.github.kirbylink.cropsyncfix");
 
             var locOriginal = typeof(GameLocation).GetMethod("DayUpdate");
             var locPrefix = helper.Reflection.GetMethod(typeof(LocationDayUpdateMethod), "Prefix").MethodInfo;
 
-            var hdOriginal = typeof(HoeDirt).GetMethod("dayUpdate");
-            var hdPrefix = helper.Reflection.GetMethod(typeof(HoeDirtDayUpdateMethod), "Prefix").MethodInfo;
+            var hdNDOriginal = typeof(HoeDirt).GetMethod("dayUpdate");
+            var hdUTOriginal = typeof(HoeDirt).GetMethod("tickUpdate");
+            var hdNDPrefix = helper.Reflection.GetMethod(typeof(HoeDirtDayUpdateMethod), "NewDayPrefix").MethodInfo;
+            var hdUTPrefix = helper.Reflection.GetMethod(typeof(HoeDirtDayUpdateMethod), "UpdateTickPrefix").MethodInfo;
 
             harmony.Patch(locOriginal, new HarmonyMethod(locPrefix), null);
-            harmony.Patch(hdOriginal, new HarmonyMethod(hdPrefix), null);
+            harmony.Patch(hdNDOriginal, new HarmonyMethod(hdNDPrefix), null);
+            harmony.Patch(hdUTOriginal, new HarmonyMethod(hdUTPrefix), null);
 
             helper.Events.World.TerrainFeatureListChanged += this.WorldEvents_TerrainFeatureListChanged;
         }
@@ -265,7 +271,7 @@ namespace CropSyncFix
     public static class HoeDirtDayUpdateMethod
     {
 
-        static bool Prefix(HoeDirt __instance, GameLocation environment, Vector2 tileLocation)
+        static bool NewDayPrefix(HoeDirt __instance, GameLocation environment, Vector2 tileLocation)
         {
 
             Crop crop = __instance.crop;
@@ -288,6 +294,18 @@ namespace CropSyncFix
             __instance.state.Value = 0;
             return false;
         }
-    }
 
+        public static void UpdateTickPrefix(HoeDirt __instance)
+        {
+            if (__instance != null)
+            {
+                var field = AccessTools.Field(typeof(HoeDirt), "queuedActions");
+                var actions = field.GetValue(__instance);
+                foreach (Action<GameLocation, Vector2> queuedAction in (List<Action<GameLocation, Vector2>>)actions)
+                {
+                    ModEntry.me.Monitor.Log($"Actions: {queuedAction}");
+                }
+            }
+        }
+    }
 }
