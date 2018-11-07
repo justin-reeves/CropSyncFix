@@ -48,8 +48,6 @@ namespace CropSyncFix
             __instance.updateMap();
             __instance.temporarySprites.Clear();
 
-            Random random = new Random((int)Game1.uniqueIDForThisGame + (int)Game1.stats.DaysPlayed);
-
             //Update Terrain Features
             var tFeatures = __instance.terrainFeatures;
             
@@ -60,7 +58,7 @@ namespace CropSyncFix
                 {
                     tFeatures.Remove(pair.Key);
                 }
-                else
+                else 
                 {
                     pair.Value.dayUpdate(__instance, pair.Key);
                 }
